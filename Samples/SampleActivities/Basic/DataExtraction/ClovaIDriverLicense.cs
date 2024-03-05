@@ -25,17 +25,17 @@ namespace SampleActivities.Basic.DataExtraction
 {
 
    
-    [DisplayName("Clova 운전면허증 Extractor")]
+    [DisplayName("Clova 運転免許証 Extractor")]
     public class ClovaDriverLicenseExtractor : ExtractorAsyncCodeActivity
     {
         [Category("Server")]
         [RequiredArgument]
-        [Description("ML모델 서비스 endpoint 정보")]
+        [Description("MLモデルサービス Endpoint 情報")]
         public InArgument<string> Endpoint { get; set; }
 
         [Category("Server")]
         [RequiredArgument]
-        [Description("ML모델 서비스 endpoint ApiKey 정보 ")]
+        [Description("MLモデルサービス Api Key 情報")]
         public InArgument<string> ApiKey { get; set; }
 
         ExtractorResult result;
