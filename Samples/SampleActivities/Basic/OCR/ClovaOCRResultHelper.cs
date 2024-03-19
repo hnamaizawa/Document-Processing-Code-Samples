@@ -23,7 +23,7 @@ namespace SampleActivities.Basic.OCR
             public string version { get; set; } = "V2";
             public string requestId { get; set; } = Guid.NewGuid().ToString();
             public string timestamp { get; set; } = System.DateTime.Now.Ticks.ToString();
-            public string lang { get; set; } = "ko"; // default 
+            public string lang { get; set; } = "ja"; // default 
 
             public Boolean enableTableDetection { get; set; } = false;
             public List<RequestImage> images { get; set; } = new List<RequestImage>();

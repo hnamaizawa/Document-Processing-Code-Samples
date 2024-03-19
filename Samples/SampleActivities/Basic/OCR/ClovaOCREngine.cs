@@ -21,7 +21,7 @@ namespace SampleActivities.Basic.OCR
 
         [Category("Login")]
         [RequiredArgument]
-        [Description("Clova OCR API GW endpoint 정보")]
+        [Description("Clova OCR API GW endpoint 情報")]
         public InArgument<string> Endpoint { get; set; }
 
         [Category("Login")]
@@ -31,12 +31,12 @@ namespace SampleActivities.Basic.OCR
 
         [Category("Option")]
         [Browsable(true)]
-        [Description("설정 가능한 언어값은 ko ja zh-TW 중 하나를 선택")]
-        public InArgument<string> Languages { get; set; } = "ko";
+        [Description("利用可能な言語は ja ko zh-TW のいずれかです")]
+        public InArgument<string> Languages { get; set; } = "ja";
 
         [Category("Option")]
         [Browsable(true)]
-        [Description("표 추출 옵션")]
+        [Description("表抽出オプション")]
         public InArgument<Boolean> enableTableDetection { get; set; } = false;
 
 
@@ -52,8 +52,8 @@ namespace SampleActivities.Basic.OCR
         private DataSet dataSet;
 
         /**
-         * OCRENgine으로 동작하는데 필요한 함수 구현 
-         * Dictionary<string,object> options에 필요한 값을 담아서 넘겨준다. 
+         * OCRENgine が動作するために必要な関数の実装 
+         * Dictionary<string,object> options に必要な値を格納して引き渡します。 
          */
         public override Task<OCRResult> PerformOCRAsync(Image image, Dictionary<string, object> options, CancellationToken ct)
         {
@@ -81,7 +81,7 @@ namespace SampleActivities.Basic.OCR
         }
 
         /**
-         * Output 출력을 설정한다. PeformOCRAsync에서 options에 담겨진 값을 이용해서 최종 Output argument에 값을 설정한다. 
+         * Output 出力を設定します。PeformOCRAsync から options に含まれる値を利用して、最終的に Output argument へ値を設定します。 
          */
         protected override void OnSuccess(CodeActivityContext context, OCRResult result)
         {
