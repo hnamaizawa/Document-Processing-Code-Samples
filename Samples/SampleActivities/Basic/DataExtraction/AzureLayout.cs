@@ -63,19 +63,38 @@ namespace SampleActivities.Basic.DataExtraction
         [Description("DU 抽出結果")]
         public InArgument<ExtractionResult> DuExtractionResult { get; set; }
 
+        [Category("Server")]                // 読取対象テーブルインデックスをオプションとして指定可能にする
+        [RequiredArgument]
+        [Description("読取対象テーブルインデックス（1つ目のテーブルは 0 を指定します）")]
+        public InArgument<int> TableIndex { get; set; }
+
         Object lockObj = new Object();
 
         ExtractorResult result;
         ExtractionResult du_result;
         List<PageLayout> pages;
+        int tableIndex;
+        string[] itemFields;
 
         public override Task<ExtractorDocumentTypeCapabilities[]> GetCapabilities()
         {
 #if DEBUG
-            Debug.WriteLine("GetCapabilities called");
+            Console.WriteLine("GetCapabilities called");
 #endif
             //Azure Form Recognizer invoice fields definition 
-            List<ExtractorFieldCapability> fields = new List<ExtractorFieldCapability>();
+            List<ExtractorFieldCapability> fields = InitializeFields();
+
+            return Task.FromResult(new[] {
+                new ExtractorDocumentTypeCapabilities{
+                    DocumentTypeId = "azure.layout.demo",
+                    Fields = fields.ToArray()
+                }
+            });
+        }
+
+        private List<ExtractorFieldCapability> InitializeFields()
+        {
+            var fields = new List<ExtractorFieldCapability>();
 
             // Azure Invoice Custom Activity をベースにしています（必要に応じて変更が必要です）
             fields.Add(new ExtractorFieldCapability { FieldId = "CustomerName", Components = new ExtractorFieldCapability[0], SetValues = new string[0] });
@@ -110,22 +129,17 @@ namespace SampleActivities.Basic.DataExtraction
             fields.Add(new ExtractorFieldCapability { FieldId = "PaymentOptions", Components = new ExtractorFieldCapability[0], SetValues = new string[0] });
             fields.Add(new ExtractorFieldCapability { FieldId = "TotalDiscount", Components = new ExtractorFieldCapability[0], SetValues = new string[0] });
             fields.Add(new ExtractorFieldCapability { FieldId = "Items", Components = new[] {
-                new ExtractorFieldCapability {FieldId = "Amount", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "Description", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
-                new ExtractorFieldCapability {FieldId = "Quantity", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "UnitPrice", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
+                new ExtractorFieldCapability {FieldId = "Quantity", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
+                new ExtractorFieldCapability {FieldId = "Amount", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "ProductCode", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "Unit", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "Date", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "Tax", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 new ExtractorFieldCapability {FieldId = "TaxRate", Components = new ExtractorFieldCapability[0], SetValues = new string[0]},
                 }, SetValues = new string[0] });
-            return Task.FromResult(new[] {
-                new ExtractorDocumentTypeCapabilities{
-                    DocumentTypeId = "azure.layout.demo",
-                    Fields = fields.ToArray()
-                }
-            });
+            return fields;
         }
 
         public override Boolean ProvidesCapabilities()
@@ -145,6 +159,7 @@ namespace SampleActivities.Basic.DataExtraction
             string apiKey = ApiKey.Get(context);
 
             this.du_result = DuExtractionResult.Get(context);   // DU 抽出結果をオプションとして指定可能にする
+            this.tableIndex = TableIndex.Get(context);          // 読取対象テーブルインデックスをオプションとして指定可能にする
             this.pages = new List<PageLayout>();
 
             var task = new Task( _ => Execute(documentType, documentBounds, text, document, documentPath, endpoint, apiKey), state);
@@ -175,10 +190,34 @@ namespace SampleActivities.Basic.DataExtraction
         private ExtractorResult ComputeResult(ExtractorDocumentType documentType, ResultsDocumentBounds documentBounds,
                                 string text, Document dom, string documentPath, string endpoint, string apiKey)
         {
+#if DEBUG
+            Console.WriteLine("ComputeResult called");
+#endif
             var credential = new AzureKeyCredential(apiKey);                        // Activity で設定したパラメータが使われています
             var client = new DocumentAnalysisClient(new Uri(endpoint), credential); // Activity で設定したパラメータが使われています
             var extractorResult = new ExtractorResult();                            // DU へ戻す結果領域
-            var resultsDataPoints = new List<ResultsDataPoint>();                   // 結果に含まれる内部的な領域
+            var resultsDataPoints = new List<ResultsDataPoint>();                   // 結果に含まれる内部的な領域（位置情報などを含む）
+
+            //Azure Form Recognizer invoice fields definition 
+            List<ExtractorFieldCapability> fields = InitializeFields();
+
+            // 明細データの列名リストを取得します
+            var itemsField = fields.FirstOrDefault(field => field.FieldId == "Items");
+            if (itemsField != null && itemsField.Components.Length > 0)
+            {
+                // "Items" コンポーネントの FieldId を String[] へ格納
+                itemFields = itemsField.Components.Select(component => component.FieldId).ToArray();
+            }
+            else
+            {
+                itemFields = new string[0]; // 列がない場合は空の配列を返します
+            }
+#if DEBUG
+            foreach (var item in itemFields)
+            {
+                Console.WriteLine($"item of ItemFields = {item}");
+            }
+#endif
 
             // Azure Layout API の呼び出し
             AnalyzeDocumentOperation operation = client.AnalyzeDocument(WaitUntil.Completed, "prebuilt-layout", File.OpenRead(documentPath));
@@ -214,57 +253,34 @@ namespace SampleActivities.Basic.DataExtraction
                 else if (du_field.Type == FieldType.Table)
                 {
                     // テーブルの場合
-                    resultsDataPoints.Add(CreateTableFieldDataPoint(du_field, result, dom, pages.ToArray()));
+                    resultsDataPoints.Add(CreateTableFieldDataPoint(du_field, result, dom, pages.ToArray(), this.tableIndex, this.itemFields));
                 }
             }
             extractorResult.DataPoints = resultsDataPoints.ToArray();
             return extractorResult;
         }
 
-        // 現時点では特定の標準フィールドのみ DU の OCR 結果をマージしています。
+        // DU の OCR 結果をマージしています
         private static ResultsDataPoint CreateTextFieldDataPoint(Field du_field, ExtractionResult du_result, Document dom, PageLayout[] pages)
         {
-            String du_value = null;
-            ResultsValue resultsValue;            
+#if DEBUG
+            Console.WriteLine("CreateTextFieldDataPoint called");
+            Console.WriteLine($"Field Name : {du_field.FieldName}");
+#endif
+            // 標準フィールドに値が設定されている場合は ResultsDataPoint として戻します
+            if (du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == du_field.FieldName).Values.Length > 0 &&
+                du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == du_field.FieldName).Values[0].Value != null)
+            {
+                // 指定されたフィールドの情報を取得しています
+                var fieldValue = du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == du_field.FieldName);
 
-            // 業者名（VendorName） が対象の場合
-            if (du_field.FieldName.Equals("VendorName"))
-            {
-                du_value = du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == "VendorName").Values[0].Value;
-                resultsValue = new ResultsValue(du_value, null, 1.0f, 1.0f);  // 2つ目に位置情報をベースにした参照情報が必要、後ろの2つ向けに信頼度も必要
-                return new ResultsDataPoint(
-                du_field.FieldId,
-                du_field.FieldName,
-                du_field.Type,
-                new[] { resultsValue });
-            }
-            // 請求先名（CustomerName） が対象の場合
-            else if (du_field.FieldName.Equals("CustomerName"))
-            {
-                du_value = du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == "CustomerName").Values[0].Value;
-                resultsValue = new ResultsValue(du_value, null, 1.0f, 1.0f);  // 2つ目に位置情報をベースにした参照情報が必要、後ろの2つ向けに信頼度も必要
-                return new ResultsDataPoint(
-                du_field.FieldId,
-                du_field.FieldName,
-                du_field.Type,
-                new[] { resultsValue });
-            }
-            // 請求番号（InvoiceId） が対象の場合
-            else if (du_field.FieldName.Equals("InvoiceId"))
-            {
-                du_value = du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == "InvoiceId").Values[0].Value;
-                resultsValue = new ResultsValue(du_value, null, 1.0f, 1.0f);  // 2つ目に位置情報をベースにした参照情報が必要、後ろの2つ向けに信頼度も必要
-                return new ResultsDataPoint(
-                du_field.FieldId,
-                du_field.FieldName,
-                du_field.Type,
-                new[] { resultsValue });
-            }
-            // 請求金額（InvoiceTotal） が対象の場合
-            else if (du_field.FieldName.Equals("InvoiceTotal"))
-            {
-                du_value = du_result.ResultsDocument.Fields.FirstOrDefault(f => f.FieldName == "InvoiceTotal").Values[0].Value;
-                resultsValue = new ResultsValue(du_value, null, 1.0f, 1.0f);  // 2つ目に位置情報をベースにした参照情報が必要、後ろの2つ向けに信頼度も必要
+                String du_value = fieldValue.Values[0].Value;                   // 値
+                var reference = fieldValue.Values[0].Reference;                 // 位置情報
+                float confidence = fieldValue.Values[0].Confidence;             // 信頼度
+                float ocrconfidence = fieldValue.Values[0].OcrConfidence;       // OCR 信頼度
+
+                ResultsValue resultsValue = new ResultsValue(du_value, reference, confidence, ocrconfidence);
+
                 return new ResultsDataPoint(
                 du_field.FieldId,
                 du_field.FieldName,
@@ -277,19 +293,25 @@ namespace SampleActivities.Basic.DataExtraction
             }
         }
 
-        private static ResultsDataPoint CreateTableFieldDataPoint(Field du_field, AnalyzeResult az_result, Document dom, PageLayout[] pages)
+        private static ResultsDataPoint CreateTableFieldDataPoint(Field du_field, AnalyzeResult az_result, Document dom, PageLayout[] pages, int tableIndex, string[] itemFields)
         {
+#if DEBUG
+            Console.WriteLine("CreateTableFieldDataPoint called");
+            foreach (var item in itemFields)
+            {
+                Console.WriteLine($"item of ItemFields = {item}");
+            }
+#endif
             int i = 0;
             String fieldName;
             List<ResultsDataPoint> dataPoints = new List<ResultsDataPoint>();
             List<IEnumerable<ResultsDataPoint>> rows = new List<IEnumerable<ResultsDataPoint>>();
 
-            // Azure Layout API 結果を2次元配列へ変換 （本サンプルではサンプル帳票に含まれる3つ目のテーブルを対象としています）
-            Cell[,] cells = ConvertTableTo2DArrayWithPosition(az_result);
+            // Azure Layout API 結果を2次元配列へ変換
+            Cell[,] cells = ConvertTableTo2DArrayWithPosition(az_result, tableIndex);
 
-            // テーブルに含まれる行数分のループ
-            //for (int rowIndex = 0; rowIndex < cells[0,0].TableRows; rowIndex++)
-            for (int rowIndex = 1; rowIndex < 6; rowIndex++)  // 強制的に0行目のヘッダーを省略し、5行目までの合計5行の明細データを処理します
+            // テーブルに含まれる行数分のループ（0行目のヘッダー部分は読取対象から除いています）
+            for (int rowIndex = 1; rowIndex < cells[0,0].TableRows; rowIndex++)
             {
                 List<ResultsDataPoint> row = new List<ResultsDataPoint>();
 
@@ -297,28 +319,23 @@ namespace SampleActivities.Basic.DataExtraction
                 for (int columnIndex = 0; columnIndex < cells[0,0].TableColumns; columnIndex++)
                 {
                     Cell cell = cells[rowIndex, columnIndex];
-                    if (cell != null) // セルが存在する場合のみ処理
+                    if (cell != null && !cell.Content.Equals("")) // セルが存在する、かつ値を含む場合のみ処理する
                     {
                         // セルの内容を基に ResultsValue を作成 （右2つの信頼度に関するパラメータは暫定的に 1.0 を指定）
                         ResultsValue cellValue = new ResultsValue(cell.Content, new ResultsContentReference(cell.PageNumber, 0, null), 1.0f, 1.0f);
 
-                        // 強制的に columnIndex の位置で登録するべき fieldName を設定しています （タクソノミー定義に合わせている）
-                        if (columnIndex == 0)
+                        // 明細データの列名リストから columnIndex の位置に対応した列名を設定します
+                        if (itemFields != null && itemFields.Length >= columnIndex && itemFields[columnIndex] != "")
                         {
-                            fieldName = "Description";
-                        }
-                        else if (columnIndex == 1)
-                        {
-                            fieldName = "UnitPrice";
-                        }
-                        else if (columnIndex == 2)
-                        {
-                            fieldName = "Quantity";
+                            fieldName = itemFields[columnIndex];
                         }
                         else
                         {
-                            fieldName = "Amount";
+                            fieldName = "";
                         }
+#if DEBUG
+                        Console.WriteLine($"fieldName = {fieldName}");
+#endif
 
                         // ResultsDataPoint を作成
                         row.Add(new ResultsDataPoint(fieldName, fieldName, FieldType.Text,
@@ -401,9 +418,9 @@ namespace SampleActivities.Basic.DataExtraction
         */
 
         // Azure Layout API のレスポンスデータ（Cell配列）を2次元配列へ変換します
-        public static Cell[,] ConvertTableTo2DArrayWithPosition(AnalyzeResult analyzeResult)
+        public static Cell[,] ConvertTableTo2DArrayWithPosition(AnalyzeResult analyzeResult, int tableIndex)
         {
-            var table = analyzeResult.Tables[2]; // 本サンプルでは Azure Layout API 結果の3つ目のテーブルを使用しています
+            var table = analyzeResult.Tables[tableIndex];
             int rows = table.RowCount;
             int columns = table.ColumnCount;
 
@@ -426,34 +443,37 @@ namespace SampleActivities.Basic.DataExtraction
                     cell.BoundingRegions[0].PageNumber  // PageNumber は後続処理で利用しているため、2次元配列へ含めています
                     );
             }
+#if DEBUG
+            PrintConvertedTable(tableArray);
+#endif
             return tableArray;
         }
 
-        // 2次元配列のCellデータのログを出力するデバッグ用メソッド（動作するようになったため、コメントアウトしています）
-        /*
-                private static void PrintConvertedTable(Cell[,] cell)
+#if DEBUG
+        // 2次元配列のCellデータのログを出力するデバッグ用メソッド
+        private static void PrintConvertedTable(Cell[,] cell)
+        {
+            int rows = cell[0, 0].TableRows;
+            int columns = cell[0, 0].TableColumns;
+
+            Console.WriteLine($"PrintConvertedTable : Rows {rows}  Columns {columns}");
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
                 {
-                    int rows = cell[0, 0].TableRows;
-                    int columns = cell[0, 0].TableColumns;
-
-                    Console.WriteLine($"PrintConvertedTable : Rows {rows}  Columns {columns}");
-
-                    for (int i = 0; i < rows; i++)
+                    if (cell[i, j] != null && !cell[i, j].Content.Equals(""))
                     {
-                        for (int j = 0; j < columns; j++)
-                        {
-                            if (cell[i, j] != null && !cell[i, j].Content.Equals(""))
-                            {
-                                Console.WriteLine($"PrintConvertedTable Row: {i} Col: {j} Content: {cell[i, j].Content} X={cell[i, j].BoundingPolygon[0].X} Y={cell[i, j].BoundingPolygon[0].Y} page={cell[i, j].PageNumber}");
-                            }
-                            else
-                            {
-                                Console.WriteLine("[Empty] ");
-                            }
-                        }
-                        Console.WriteLine(); // 次の行へ
+                        Console.WriteLine($"PrintConvertedTable Row: {i} Col: {j} Content: {cell[i, j].Content} X={cell[i, j].BoundingPolygon[0].X} Y={cell[i, j].BoundingPolygon[0].Y} page={cell[i, j].PageNumber}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Empty] ");
                     }
                 }
-        */
+                Console.WriteLine(); // 次の行へ
+            }
+        }
+#endif
     }
 }
