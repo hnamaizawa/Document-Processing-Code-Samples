@@ -25,9 +25,11 @@ We would also like to extend our sincere thanks to all the contributors who have
 
 ## 最新の更新情報
 
+- **バージョン 1.0.6 のリリース (2024-03-26)**: AzureLayout.cs を全面的に見直し、DU の抽出結果から位置情報や信頼度のマージへ対応し、Azure Layout API 抽出結果のマッピング処理改善、対象となる明細テーブル指定機能の追加などを実施しました。詳細は[変更ログ](https://github.com/hnamaizawa/Document-Processing-Code-Samples/commit/6b701e6b89fdc2233dcf4496f6c6d0fff63ebbcb)をご覧ください。
+
 - **バージョン 1.0.5 のリリース (2024-03-19)**: Clova OCR Engine アクティビティのデフォルトの言語設定を **ja** に変更しました。詳細は[変更ログ](https://github.com/hnamaizawa/Document-Processing-Code-Samples/commit/64f4d4211d1bc2e177a36957bb17d33c9735e81d)をご覧ください。
 
-- **表抽出アクティビティの追加(2024-03-04)**:  Azure Layout API を用いて表抽出を行うアクティビティを追加しました。詳細は[説明](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/README.md#%E8%A1%A8%E6%8A%BD%E5%87%BA%E3%82%A2%E3%82%AF%E3%83%86%E3%82%A3%E3%83%93%E3%83%86%E3%82%A3%E3%81%AE%E8%AA%AC%E6%98%8E)をご覧ください。
+- **表抽出アクティビティの追加 (2024-03-04)**:  Azure Layout API を用いて表抽出を行うアクティビティを追加しました。詳細は[説明](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/README.md#%E8%A1%A8%E6%8A%BD%E5%87%BA%E3%82%A2%E3%82%AF%E3%83%86%E3%82%A3%E3%83%93%E3%83%86%E3%82%A3%E3%81%AE%E8%AA%AC%E6%98%8E)をご覧ください。
 
 ---
 
