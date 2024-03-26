@@ -38,11 +38,13 @@ We would also like to extend our sincere thanks to all the contributors who have
 新たに表抽出を行うカスタムアクティビティとして [Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs) を追加しました。
 このアクティビティは Azure AI Document Intelligence が提供する Layout API を利用しています。
 
-テスト用データとして `請求書_1-0.PNG` を含んでおります。
+テスト用データとして `請求書_1-0.PNG` を含んでおります。  
 実際に読み取りたい帳票の明細データに合わせて[こちら](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs#L132-L140)のロジックで Items に含まれる項目の順番を調整する必要があります。  
 （Azure Layout API 結果の表データの列の順番に従い Items に定義した項目をマッピングする実装となっています）
 
-また、AzureLayout.cs を呼び出す際に事前に DU の OCR で読み取ったデータを引き渡すと Layout API 結果（列フィールド）と DU OCR 結果（標準フィールド）をマージする実装となっています。  
+例としては、 `請求書_1-0.PNG` の明細データの列は、商品名（Description）、単価（UnitPrice）、数量（Quantity）、金額（Amount）の順番となっていますが、上記の Items 内の項目も同じ順番で定義されております。
+
+また、AzureLayout.cs を呼び出す際に事前に DU の抽出器で読み取ったデータを引き渡すと Layout API 結果（列フィールド）と DU の抽出結果（標準フィールド）をマージする実装となっています。  
 
 
 A new custom activity, [Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs), has been added to perform table extraction.
@@ -51,4 +53,6 @@ This activity uses the Layout API provided by Azure AI Document Intelligence.
 `請求書_1-0.PNG` is included as test data. You will need to adjust the order of the items in Items using the logic [here](https://github.com/hnamaizawa/Document-Processing-Code-Samples/blob/master/Samples/SampleActivities/Basic/DataExtraction/AzureLayout.cs#L132-L140) according to the detail data of the form you actually want to read.  
 (The implementation is to map the items defined in Items according to the order of the columns of the table data in the Azure Layout API results.)
 
-In addition, when calling AzureLayout.cs, if the data read by DU OCR is handed over in advance, the Layout API results (column fields) and DU OCR results (standard fields) are merged.
+For example, the columns of detail data in `請求書_1-0.PNG` are in the order Product Name (Description), Unit Price (UnitPrice), Quantity (Quantity), and Amount (Amount), and the columns in the Items above are defined in the same order.
+
+In addition, when calling AzureLayout.cs, if the data read by DU Extrator is handed over in advance, the Layout API results (column fields) and DU Extractor results (standard fields) are merged.
