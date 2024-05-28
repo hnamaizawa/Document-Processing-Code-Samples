@@ -22,7 +22,7 @@
 	<Product>CustomDUActivities</Product>
 	<VersionMajor>1</VersionMajor>
 	<VersionMinor>0</VersionMinor>
-	<VersionBuild>6</VersionBuild>
+	<VersionBuild>7</VersionBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -60,6 +60,7 @@
     <Compile Remove="Basic\OCR\SimpleOCRScrape.cs" />
     <Compile Remove="Basic\OCR\SimpleOCRScrapeFactory.cs" />
     <Compile Remove="Basic\OCR\SimpleScrapeControl.xaml.cs" />
+    <Compile Remove="Basic\OCR\TestClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Remove="Basic\DataExtraction\AzureInvoiceDesigner.xaml" />
