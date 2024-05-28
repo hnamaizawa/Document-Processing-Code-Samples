@@ -25,6 +25,8 @@ We would also like to extend our sincere thanks to all the contributors who have
 
 ## 最新の更新情報
 
+- **バージョン 1.0.7 のリリース (2024-05-28)**: Cogent Labs SmartRead OCR Engine アクティビティを追加しました。SmartRead の全文OCR機能を用いたアクティビティが利用可能となりました。ドキュメントをデジタル化する際にご利用ください詳細は[変更ログ](https://github.com/hnamaizawa/Document-Processing-Code-Samples/commit/53f60a7ad9c5e5569a3ee523f5070efaed3324eb)をご覧ください。
+
 - **バージョン 1.0.6 のリリース (2024-03-26)**: AzureLayout.cs を全面的に見直し、DU の抽出結果から位置情報や信頼度のマージへ対応し、Azure Layout API 抽出結果のマッピング処理改善、対象となる明細テーブル指定機能の追加などを実施しました。詳細は[変更ログ](https://github.com/hnamaizawa/Document-Processing-Code-Samples/commit/6b701e6b89fdc2233dcf4496f6c6d0fff63ebbcb)をご覧ください。
 
 - **バージョン 1.0.5 のリリース (2024-03-19)**: Clova OCR Engine アクティビティのデフォルトの言語設定を **ja** に変更しました。詳細は[変更ログ](https://github.com/hnamaizawa/Document-Processing-Code-Samples/commit/64f4d4211d1bc2e177a36957bb17d33c9735e81d)をご覧ください。
