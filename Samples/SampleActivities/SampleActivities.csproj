@@ -22,7 +22,7 @@
 	<Product>CustomDUActivities</Product>
 	<VersionMajor>1</VersionMajor>
 	<VersionMinor>0</VersionMinor>
-	<VersionBuild>7</VersionBuild>
+	<VersionBuild>8</VersionBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
