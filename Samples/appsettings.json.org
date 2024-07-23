@@ -1,8 +1,0 @@
-{
-    "OCRSettings": {
-        "AIinside":{
-            "Endpoint": "https://uipath001.dx-suite.com/wf/api/fullocr/v2",
-            "ApiKey": "60f5b1761a614f4bbd642eda2b2247933c79eed08b6e8d5243b96875cf1ff57df83bcf1eb55049be0acb5ec6e6a6e48ec95ae509be677fe3bb6c9d717fd5e85f"  
-        }
-    }
-}
